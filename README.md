@@ -1,5 +1,5 @@
 ![](https://img.shields.io/github/issues/lineartapefilesystem/ltfs.svg)
-![GH Action status](https://github.com/LinearTapeFileSystem/ltfs/actions/workflows/build-centos8.yml/badge.svg)
+![GH Action status](https://github.com/LinearTapeFileSystem/ltfs/workflows/CentOS7%20Build%20Job/badge.svg?branch=master)
 [![BSD License](http://img.shields.io/badge/license-BSD-blue.svg?style=flat)](LICENSE)
 
 # Linear Tape File System (LTFS)
@@ -12,7 +12,7 @@ At this time, the target of this project to meet is the LTFS format specificatio
 
 ## LTFS Format Specifications
 
-LTFS Format Specification is specified data placement, shape of index and names of extended attributes for LTFS. This specification is defined in [SNIA](https://www.snia.org/tech_activities/standards/curr_standards/ltfs) first and then it is forwarded to [ISO](https://www.iso.org/home.html) as ISO/IEC 20919 from version 2.2.
+LTFS Format Specification is specified data placement, shape of index and names of extended attributes for LTFS. This specification is defined in [SNIA](https://www.snia.org/tech_activities/standa).
 
 The table below show status of the LTFS format Specification
 
@@ -79,6 +79,14 @@ These instructions will get you a copy of the project up and running on your loc
   * libxml2
   * icu
 
+- Windows 11:
+  * MinGW-w64 or MSVC 2019+ build tools
+  * autotools (automake, autoconf, libtool) for MinGW
+  * WinFSP 1.4.0 or later (https://winfsp.dev)
+  * libxml2 (Windows binary or built from source)
+  * icu (Windows binary or built from source)
+  * OpenSSL or similar for SCSI over IP support (optional)
+
 ## Supported Tape Drives
 
   | Vendor  | Drive Type              | Minimum F/W Level |
@@ -105,89 +113,7 @@ These instructions will get you a copy of the project up and running on your loc
 
 ## Installing
 
-LTFS Format Specification is specified data placement, shape of index and names of extended attributes for LTFS. This specification is defined in [SNIA](https://www.snia.org/tech_activities/standards/curr_standards/ltfs) first and then it is forwarded to [ISO](https://www.iso.org/home.html) as ISO/IEC 20919 from version 2.2.
-
-The table below show status of the LTFS format Specification
-
-  | Version | Status of SNIA                                                                                                        | Status of ISO                                                        |
-  |:-------:|:---------------------------------------------------------------------------------------------------------------------:|:--------------------------------------------------------------------:|
-  | 2.2     | [Published](http://snia.org/sites/default/files/LTFS_Format_2.2.0_Technical_Position.pdf)                             | [Published as `20919:2016`](https://www.iso.org/standard/69458.html) |
-  | 2.3.1   | [Published](https://www.snia.org/sites/default/files/technical_work/LTFS/LTFS_Format_2.3.1_TechPosition.PDF)          | -                                                                    |
-  | 2.4     | [Published](https://www.snia.org/sites/default/files/technical_work/LTFS/LTFS_Format_2.4.0_TechPosition.pdf)          | -                                                                    |
-  | 2.5.1   | [Published](https://www.snia.org/sites/default/files/technical-work/ltfs/release/SNIA-LTFS-Format-2-5-1-Standard.pdf) | [Published as `20919:2021`](https://www.iso.org/standard/80598.html) |
-
-# How to use the LTFS (Quick start)
-
-This section is for a person who already has a machine with the LTFS installed. Instructions on how to use the LTFS is also available on [Wiki](https://github.com/LinearTapeFileSystem/ltfs/wiki).
-
-## Step1: List tape drives
-
-`# ltfs -o device_list`
-
-The output is as follows. You have 3 drives in this example and you can use "Device Name" field, like `/dev/sg43` in this case, as the argument of ltfs command to mount the tape drive.
-
-```
-50c4 LTFS14000I LTFS starting, LTFS version 2.4.0.0 (10022), log level 2.
-50c4 LTFS14058I LTFS Format Specification version 2.4.0.
-50c4 LTFS14104I Launched by "/home/piste/ltfsoss/bin/ltfs -o device_list".
-50c4 LTFS14105I This binary is built for Linux (x86_64).
-50c4 LTFS14106I GCC version is 4.8.5 20150623 (Red Hat 4.8.5-11).
-50c4 LTFS17087I Kernel version: Linux version 3.10.0-514.10.2.el7.x86_64 (mockbuild@x86-039.build.eng.bos.redhat.com) (gcc version 4.8.5 20150623 (Red Hat 4.8.5-11) (GCC) ) #1 SMP Mon Feb 20 02:37:52 EST 2017 i386.
-50c4 LTFS17089I Distribution: NAME="Red Hat Enterprise Linux Server".
-50c4 LTFS17089I Distribution: Red Hat Enterprise Linux Server release 7.3 (Maipo).
-50c4 LTFS17089I Distribution: Red Hat Enterprise Linux Server release 7.3 (Maipo).
-50c4 LTFS17085I Plugin: Loading "sg" tape backend.
-Tape Device list:.
-Device Name = /dev/sg43, Vender ID = IBM    , Product ID = ULTRIUM-TD5    , Serial Number = 9A700L0077, Product Name = [ULTRIUM-TD5] .
-Device Name = /dev/sg38, Vender ID = IBM    , Product ID = ULT3580-TD6    , Serial Number = 00013B0119, Product Name = [ULT3580-TD6] .
-Device Name = /dev/sg37, Vender ID = IBM    , Product ID = ULT3580-TD7    , Serial Number = 00078D00C2, Product Name = [ULT3580-TD7] .
-```
-
-## Step2: Format a tape
-
-As described in the LTFS format specifications, LTFS uses the partition feature of the tape drive. This means you can't use a tape just after you purchase a tape. You need format the tape before using it on LTFS.
-
-To format a tape, you can use `mkltfs` command like
-
-`# mkltfs -d 9A700L0077`
-
-In this case, `mkltfs` tries to format a tape in the tape drive `9A700L0077`. You can use the device name `/dev/sg43` instead.
-
-## Step3: Mount a tape through a tape drive
-
-After you prepared a formatted tape, you can mount it through a tape drive like
-
-`# ltfs -o devname=9A700L0077 /ltfs`
-
-In this command, the ltfs command will try to mount the tape in the tape drive `9A700L0077` to `/ltfs` directory. Of course, you can use a device name `/dev/sg43` instead.
-
-If the mount process is successfully done, you can access to the LTFS tape through `/ltfs` directory.
-
-You must not touch any `st` devices while ltfs is mounting a tape.
-
-## Step4: Unmount the tape drive
-
-You can use following command when you want to unmount the tape. The ltfs command try to write the current meta-data to the tape and close the tape cleanly.
-
-`# umount /ltfs`
-
-One thing you need to pay attention to here is, that the unmount command continues to work in the background after it returns. It just initiates a trigger to notify the the ltfs command of the unmount request. Actual unmount is completed when the ltfs command is finished.
-
-## The `ltfs_ordered_copy` utility
-
-The [`ltfs_ordered_copy`](https://github.com/LinearTapeFileSystem/ltfs/wiki/ltfs_ordered_copy) is a program to copy files from source to destination with LTFS  order  optimization.
-
-It is written in python and it can work with both python2 and python3 (Python 2.7 or later is strongly recommended). You need to install the `pyxattr` module for both python2 and python3.
-
-# Building the LTFS from this GitHub project
-
-These instructions will get a copy of the project up and running on your local machine for development and testing purposes.
-
-## Prerequisites for build
-
-Please refer [this page](https://github.com/LinearTapeFileSystem/ltfs/wiki/Build-Environments).
-
-## Build and install on Linux
+### Build and install on Linux
 
 ```
 ./autogen.sh
@@ -254,13 +180,13 @@ And following HBA's doesn't work correctly.
 
 ##### Note for the lpfc driver (Emulex Fibre HBAs)
 
-In the lpfc driver (for Emulex Fibre HBAs), the table size of the scatter-gather is 64 by default. This configuration may cause I/O errors intermittently when `allow_dio=1` is set and scatter-gather table cannot be reserved. To avoid this error, you need to change the parameter `lpfc_sg_seg_cnt` to 256 or greater like below.
+In the lpfc driver (for Emulex Fibre HBAs), the table size of the scatter-gather is 64 by default. This configuration may cause I/O errors intermittently when `allow_dio=1` is set and scatter-gat.
 
 ```
 options lpfc lpfc_sg_seg_cnt=256
 ```
 
-In some versions of the lpfc driver (for Emulex Fibre HBAs), the table size of the scatter-gather cannot be changed correctly. You can check the value is changed or not in `sg_tablesize` value in `/proc/scsi/sg/debug`. If you don't have a correct value (256 or greater) in `sg_tablesize`, removing `allow_dio=1` configuration of the sg driver is strongly recommended.
+In some versions of the lpfc driver (for Emulex Fibre HBAs), the table size of the scatter-gather cannot be changed correctly. You can check the value is changed or not in `sg_tablesize` value in.
 
 ##### Note for buggy HBAs
 
@@ -274,26 +200,26 @@ List of the HBA `--enable-buggy-ifs` is needed is below.
 
 #### IBM lin_tape driver support
 
-You need to add `--enable-lintape` as an argument of ./configure script if you want to build the backend for lin_tape. You also need to add `DEFAULT_TAPE=lin_tape` if you set the lin_tape backend as default backend.
+You need to add `--enable-lintape` as an argument of ./configure script if you want to build the backend for lin_tape. You also need to add `DEFAULT_TAPE=lin_tape` if you set the lin_tape backend
 
 #### Buildable distributions
 
   | Dist                               | Arch    | Status                                                                                                                           |
   |:----------------------------------:|:-------:|:--------------------------------------------------------------------------------------------------------------------------------:|
-  | RHEL 8                             | x86\_64 | OK - Not checked automatically                                                                                                   |
-  | RHEL 8                             | ppc64le | OK - Not checked automatically                                                                                                   |
-  | CentOS 8 (Rocky Linux)             | x86\_64 | ![GH Action status](https://github.com/LinearTapeFileSystem/ltfs/actions/workflows/build-centos8.yml/badge.svg)        |
-  | CentOS 8 (Rocky Linux)             | ppc64le | OK - Not checked automatically                                                                                                   |
-  | Fedora 28                          | x86\_64 | ![GH Action status](https://github.com/LinearTapeFileSystem/ltfs/actions/workflows/build-fedora28.yml/badge.svg)       |
-  | Ubuntu 16.04 LTS                   | x86\_64 | ![GH Action status](https://github.com/LinearTapeFileSystem/ltfs/actions/workflows/build-ubuntu-xeneal.yml/badge.svg) |
-  | Ubuntu 16.04 LTS                   | ppc64le | OK - Not checked automatically                                                                                                   |
-  | Ubuntu 18.04 LTS                   | x86\_64 | ![GH Action status](https://github.com/LinearTapeFileSystem/ltfs/actions/workflows/build-ubuntu-bionic.yml/badge.svg) |
-  | Ubuntu 18.04 LTS                   | ppc64le | OK - Not checked automatically                                                                                                   |
-  | Ubuntu 20.04 LTS (Need icu-config) | x86\_64 | ![GH Action status](https://github.com/LinearTapeFileSystem/ltfs/actions/workflows/build-ubuntu-focal.yml/badge.svg) |
-  | Debian 9                           | x86\_64 | ![GH Action status](https://github.com/LinearTapeFileSystem/ltfs/actions/workflows/build-debian9.yml/badge.svg)        |
-  | Debian 10 (Need icu-config)        | x86\_64 | ![GH Action status](https://github.com/LinearTapeFileSystem/ltfs/actions/workflows/build-debian10.yml/badge.svg)       |
-  | ArchLinux 2018.08.01               | x86\_64 | OK - Not checked automatically                                                                                                   |
-  | ArchLinux 2018.12.31 (rolling)     | x86\_64 | OK - Not checked automatically                                                                                                   |
+  | RHEL 8                             | x86_64  | OK                                                                                                                               |
+  | RHEL 8                             | ppc64le | OK                                                                                                                               |
+  | CentOS 8 (Rocky Linux)             | x86_64  | ![GH Action status](https://github.com/LinearTapeFileSystem/ltfs/workflows/CentOS8%20Build%20Job/badge.svg?branch=master)        |
+  | CentOS 8 (Rocky Linux)             | ppc64le | Probably OK                                                                                                                      |
+  | Fedora 28                          | x86_64  | ![GH Action status](https://github.com/LinearTapeFileSystem/ltfs/workflows/Fedora28%20Build%20Job/badge.svg?branch=master)       |
+  | Ubuntu 16.04 LTS                   | x86_64  | ![GH Action status](https://github.com/LinearTapeFileSystem/ltfs/workflows/Ubuntu%2016.04%20Build%20Job/badge.svg?branch=master) |
+  | Ubuntu 16.04 LTS                   | ppc64le | Probably OK                                                                                                                      |
+  | Ubuntu 18.04 LTS                   | x86_64  | ![GH Action status](https://github.com/LinearTapeFileSystem/ltfs/workflows/Ubuntu%2018.04%20Build%20Job/badge.svg?branch=master) |
+  | Ubuntu 18.04 LTS                   | ppc64le | Probably OK                                                                                                                      |
+  | Ubuntu 20.04 LTS (Need icu-config) | x86_64  | ![GH Action status](https://github.com/LinearTapeFileSystem/ltfs/workflows/Ubuntu%2020.04%20Build%20Job/badge.svg?branch=master) |
+  | Debian 9                           | x86_64  | ![GH Action status](https://github.com/LinearTapeFileSystem/ltfs/workflows/Debian9%20Build%20Job/badge.svg?branch=master)        |
+  | Debian 10 (Need icu-config)        | x86_64  | ![GH Action status](https://github.com/LinearTapeFileSystem/ltfs/workflows/Debian10%20Build%20Job/badge.svg?branch=master)       |
+  | ArchLinux 2018.08.01               | x86_64  | Not checked automatically                                                                                                        |
+  | ArchLinux 2018.12.31 (rolling)     | x86_64  | Not checked automatically                                                                                                        |
 
 Currently, automatic build checking is working on GitHub Actions and Travis CI.
 
@@ -321,7 +247,7 @@ brew link --force libxml2
 ```
 
 #### Building LTFS
-On OSX (macOS), snmp cannot be supported, you need to disable it on configure script. And may be, you need to specify LDFLAGS while running configure script to link some required frameworks, CoreFundation and IOKit.
+On OSX (macOS), snmp cannot be supported, you need to disable it on configure script. And may be, you need to specify LDFLAGS while running configure script to link some required frameworks, CoreFoundation and IOKit.
 
 ```
 ./autogen.sh
@@ -340,7 +266,7 @@ make install
 
 ### Build and install on FreeBSD
 
-Note that on FreeBSD, the usual 3rd party man directory is /usr/local/man. Configure defaults to using /usr/local/share/man.  So, override it on the command line to avoid having man pages put in the wrong place.
+Note that on FreeBSD, the usual 3rd party man directory is /usr/local/man. Configure defaults to using /usr/local/share/man.  So, override it on the command line to avoid having man pages put in
 
 ```
 ./autogen.sh
@@ -371,6 +297,61 @@ make install
   | 8.1     | amd64   | OK          |
   | 8.0     | i386    | OK          |
   | 7.2     | amd64   | OK          |
+
+### Build and install on Windows 11 with WinFSP
+
+To build LTFS on Windows 11 with WinFSP support, you'll need a complete MinGW-w64 development environment.
+
+#### Prerequisites for Windows 11
+
+1. **WinFSP**: Download and install from https://winfsp.dev (version 1.4.0 or later)
+2. **MinGW-w64**: Full development environment with autotools
+3. **Dependencies**: libxml2, ICU libraries (pre-built Windows binaries recommended)
+4. **Git Bash** or similar POSIX-like shell on Windows
+
+#### Setting up the build environment
+
+Set up environment variables in your shell:
+
+```bash
+# Adjust paths as needed for your installation
+export LIBXML2_PATH="C:/path/to/libxml2"
+export ICU_PATH="C:/path/to/icu"
+export WINFSP_PATH="C:/Program Files (x86)/WinFSP"
+export PKG_CONFIG_PATH="${LIBXML2_PATH}/lib/pkgconfig:${ICU_PATH}/lib/pkgconfig:${WINFSP_PATH}/lib/pkgconfig"
+export PATH="${LIBXML2_PATH}/bin:${ICU_PATH}/bin:${PATH}"
+```
+
+#### Building LTFS with WinFSP
+
+```bash
+./autogen.sh
+./configure --enable-winfsp --disable-snmp
+make
+make install
+```
+
+#### Installation on Windows 11
+
+After building:
+
+```bash
+make install DESTDIR=/path/to/install/location
+```
+
+Then:
+
+1. Ensure WinFSP is installed on the target system
+2. Copy the built LTFS binaries to the desired location
+3. Configure LTFS with your tape drive settings
+4. Run `ltfs` or use LTFS Management Console if available
+
+#### Troubleshooting Windows 11 Build
+
+- **Missing pkg-config modules**: Ensure WinFSP development files and dependencies are in your PKG_CONFIG_PATH
+- **SNMP issues**: Windows builds have SNMP disabled by default; use `--disable-snmp` if needed
+- **Locking issues**: Windows builds automatically use the new locking system
+- **Path issues**: Use forward slashes in paths; MinGW handles conversion
 
 ## Contributing
 

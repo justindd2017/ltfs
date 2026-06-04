@@ -58,6 +58,7 @@ host_linux=no
 host_mac=no
 host_freebsd=no
 host_netbsd=no
+host_windows=no
 
 case "${host_os}" in
     linux*)
@@ -71,6 +72,9 @@ case "${host_os}" in
         ;;
     netbsd*)
         host_netbsd=yes
+        ;;
+    msys* | mingw* | cygwin*)
+        host_windows=yes
         ;;
     *)
         AC_MSG_ERROR(["OS $host_os is not supported"])
@@ -141,22 +145,30 @@ AC_ARG_ENABLE([livelink],
 AC_MSG_RESULT([$livelink])
 
 dnl
-dnl Handle --enable-snmp (default:yes)
+dnl Handle --enable-snmp (default:yes, disabled on Windows)
 dnl
+if test "x${host_windows}" = "xyes"
+then
+    snmp_default=no
+else
+    snmp_default=yes
+fi
+
 AC_MSG_CHECKING([whether to enable snmp or not])
 AC_ARG_ENABLE([snmp],
     [AS_HELP_STRING([--enable-snmp],[Support SNMP or not])],
     [snmp=$enableval],
-    [snmp=yes]
+    [snmp=$snmp_default]
 )
 AC_MSG_RESULT([$snmp])
 
 dnl
 dnl Handle --enable-new-locking (default: depend on platform)
 dnl NetBSD: old locking is broken, force new locking
+dnl Windows: requires new locking
 dnl others: default to old locking
 dnl
-if test "x${host_netbsd}" = "xyes"
+if test "x${host_netbsd}" = "xyes" -o "x${host_windows}" = "xyes"
 then
     use_new_locking_default=yes
 else
@@ -181,6 +193,23 @@ AC_ARG_ENABLE([lintape],
     [lintape=no]
 )
 AC_MSG_RESULT([$lintape])
+
+dnl
+dnl Handle --enable-winfsp (default:no, Windows Only)
+dnl
+AC_MSG_CHECKING([whether to enable WinFSP support or not (Windows Only)])
+AC_ARG_ENABLE([winfsp],
+    [AS_HELP_STRING([--enable-winfsp],[Support WinFSP for Windows or not])],
+    [winfsp=$enableval],
+    [winfsp=no]
+)
+AC_MSG_RESULT([$winfsp])
+
+if test "x${winfsp}" = "xyes" -a "x${host_windows}" = "xno"
+then
+    AC_MSG_WARN([WinFSP is only available on Windows, disabling])
+    winfsp=no
+fi
 
 dnl
 dnl Handle --enable-buggy-ifs (default:no, Linux/MacOS Only)
@@ -230,6 +259,10 @@ then
     if test "x${host_netbsd}" = "xyes"
     then
         DEFAULT_TAPE=scsipi-ibmtape
+    fi
+    if test "x${host_windows}" = "xyes"
+    then
+        DEFAULT_TAPE=winfsp
     fi
 fi
 
@@ -286,12 +319,23 @@ fi
 dnl
 dnl Check for FUSE, libuuid, and libxml2
 dnl
-PKG_CHECK_MODULES([FUSE_MODULE], [fuse >= 2.6.0])
+if test "x${winfsp}" = "xyes"
+then
+    PKG_CHECK_MODULES([FUSE_MODULE], [winfsp-fuse >= 1.4.0])
+else
+    PKG_CHECK_MODULES([FUSE_MODULE], [fuse >= 2.6.0])
+fi
+
 PKG_CHECK_MODULES([LIBXML2_MODULE], [libxml-2.0 >= 2.6.16])
 
 if test "x${host_mac}" = "xyes"
 then
     PKG_CHECK_MODULES([UUID_MODULE], [uuid >= 1.6])
+elif test "x${host_windows}" = "xyes"
+then
+    dnl UUID handling for Windows
+    AC_CHECK_LIB(ole32, CoCreateGuid, [UUID_MODULE_LIBS="-lole32"], 
+        [AC_MSG_WARN([ole32 library not found, trying alternative UUID handling])])
 else
     PKG_CHECK_MODULES([UUID_MODULE], [uuid >= 1.36])
 fi
@@ -302,7 +346,7 @@ dnl
 AC_CHECK_LIB(pthread, pthread_create,,
     [AC_MSG_ERROR([required library pthread missing])])
 
-if test "x${host_mac}" = "xno"
+if test "x${host_mac}" = "xno" -a "x${host_windows}" = "xno"
 then
     AC_CHECK_LIB(rt, clock_gettime,,
         [AC_MSG_ERROR([required library rt missing])])
@@ -390,7 +434,13 @@ fi
 dnl
 dnl Check for headers, types, structures, compiler characteristics
 dnl
-AC_CHECK_HEADERS([fcntl.h limits.h stddef.h stdint.h stdlib.h string.h sys/ioctl.h sys/mount.h sys/time.h termios.h unistd.h sys/sysctl.h])
+if test "x${host_windows}" = "xyes"
+then
+    AC_CHECK_HEADERS([fcntl.h limits.h stddef.h stdint.h stdlib.h string.h time.h windows.h])
+else
+    AC_CHECK_HEADERS([fcntl.h limits.h stddef.h stdint.h stdlib.h string.h sys/ioctl.h sys/mount.h sys/time.h termios.h unistd.h sys/sysctl.h])
+fi
+
 AC_HEADER_STDBOOL
 AC_TYPE_MODE_T
 AC_TYPE_OFF_T
@@ -401,9 +451,12 @@ AC_TYPE_UINT16_T
 AC_TYPE_UINT32_T
 AC_TYPE_UINT64_T
 AC_CHECK_SIZEOF([time_t])
-AC_STRUCT_ST_BLOCKS
-AC_CHECK_MEMBERS([struct stat.st_blksize])
-AC_CHECK_MEMBERS([struct stat.st_rdev])
+if test "x${host_windows}" = "xno"
+then
+    AC_STRUCT_ST_BLOCKS
+    AC_CHECK_MEMBERS([struct stat.st_blksize])
+    AC_CHECK_MEMBERS([struct stat.st_rdev])
+fi
 AC_C_INLINE
 
 dnl
@@ -457,7 +510,13 @@ dnl
 dnl Update flags
 dnl Sets CFLAGS to force optimization and debugging options, which isn't quite kosher
 dnl
-AM_CPPFLAGS="-D_GNU_SOURCE -I\$(top_srcdir)/src -DLTFS_CONFIG_FILE='\"${sysconfdir}/ltfs.conf\"' -DLTFS_BASE_DIR='\"${prefix}\"'"
+if test "x${host_windows}" = "xyes"
+then
+    AM_CPPFLAGS="-I\$(top_srcdir)/src -DLTFS_CONFIG_FILE='\"${sysconfdir}/ltfs.conf\"' -DLTFS_BASE_DIR='\"${prefix}\"' -D_WIN32_WINNT=0x0A00"
+else
+    AM_CPPFLAGS="-D_GNU_SOURCE -I\$(top_srcdir)/src -DLTFS_CONFIG_FILE='\"${sysconfdir}/ltfs.conf\"' -DLTFS_BASE_DIR='\"${prefix}\"'"
+fi
+
 AM_CFLAGS="-Wall -Wsign-compare -fsigned-char ${FUSE_MODULE_CFLAGS} ${UUID_MODULE_CFLAGS} ${LIBXML2_MODULE_CFLAGS} ${ICU_MODULE_CFLAGS} ${SNMP_ENABLE} ${SNMP_MODULE_CFLAGS}"
 
 if test "x$use_fast" = "xyes"
@@ -465,7 +524,7 @@ then
     OPT_FLAGS="-D_FORTIFY_SOURCE=2 -O2 -g -fno-strict-aliasing"
 else
     OPT_FLAGS="-D_FORTIFY_SOURCE=0 -O0 -ggdb"
-    if test "x$CLANG" = 'xno'
+    if test "x$CLANG" = 'xno' -a "x${host_windows}" = "xno"
     then
         AM_CFLAGS="${AM_CFLAGS} -fkeep-inline-functions -rdynamic"
     fi
@@ -500,13 +559,18 @@ then
     AM_CPPFLAGS="${AM_CPPFLAGS} -DPOSIXLINK_ONLY"
 fi
 
+if test "x${winfsp}" = "xyes"
+then
+    AM_CPPFLAGS="${AM_CPPFLAGS} -DENABLE_WINFSP"
+fi
+
 dnl
 dnl Specify CPU specific optimizer options for CRC calculation
 dnl
 AC_MSG_CHECKING([for SSE4.2])
 CRC_OPTIMIZE="-O2"
 
-if test "x$GCC" = 'xyes' -a "x$CLANG" = 'xno'
+if test "x$GCC" = 'xyes' -a "x$CLANG" = 'xno' -a "x${host_windows}" = "xno"
 then
     GCC_VERSION=`$CC -dumpversion`
     GCC_VERSION_MAJOR=$(echo $GCC_VERSION | cut -d'.' -f1)
@@ -541,7 +605,7 @@ then
     else
         AC_MSG_RESULT([no, gcc version])
     fi
-elif test "x$CLANG" = 'xyes'
+elif test "x$CLANG" = 'xyes' -a "x${host_windows}" = "xno"
 then
     case x"$target_cpu" in
         xx86_64 | xamd64)
@@ -557,7 +621,7 @@ then
             ;;
     esac
 else
-    AC_MSG_RESULT([no, non-gcc])
+    AC_MSG_RESULT([no, non-gcc or Windows platform])
 fi
 
 dnl
@@ -570,7 +634,7 @@ else
     SED='sed'
 fi
 
-if test "x${host_mac}" = "xno"
+if test "x${host_mac}" = "xno" -a "x${host_windows}" = "xno"
 then
     MODULE_CHECK_LD='-Wl,--no-undefined,--as-needed'
 fi
@@ -578,6 +642,11 @@ fi
 AM_CFLAGS=`echo ${AM_CFLAGS} | ${SED} 's|-D_FORTIFY_SOURCE=. ||g'`
 AM_LDFLAGS="${AM_LDFLAGS} ${MODULE_CHECK_LD} ${FUSE_MODULE_LIBS} ${UUID_MODULE_LIBS} ${LIBXML2_MODULE_LIBS} ${ICU_MODULE_LIBS} ${SNMP_MODULE_LIBS_A} ${SNMP_MODULE_LIBS}"
 CFLAGS="${CFLAGS} ${OPT_FLAGS}"
+
+if test "x${host_windows}" = "xyes"
+then
+    LDFLAGS="${LDFLAGS} -lws2_32 -luserenv"
+fi
 
 dnl
 dnl Define options
@@ -587,6 +656,8 @@ AM_CONDITIONAL([ENABLE_LIN_TAPE], [test "x${lintape}" = "xyes"])
 AM_CONDITIONAL([PLATFORM_MAC], [test "x${host_mac}" = "xyes"])
 AM_CONDITIONAL([PLATFORM_FREEBSD], [test "x${host_freebsd}" = "xyes"])
 AM_CONDITIONAL([PLATFORM_NETBSD], [test "x${host_netbsd}" = "xyes"])
+AM_CONDITIONAL([PLATFORM_WINDOWS], [test "x${host_windows}" = "xyes"])
+AM_CONDITIONAL([ENABLE_WINFSP], [test "x${winfsp}" = "xyes"])
 AM_CONDITIONAL([CHK_MESSAGE], [test "x${use_msg_check}" = "xyes"])
 AM_CONDITIONAL([OSS], [true])
 
@@ -616,6 +687,7 @@ AC_CONFIG_FILES([
     src/tape_drivers/osx/iokit/Makefile
     src/tape_drivers/freebsd/cam/Makefile
     src/tape_drivers/netbsd/scsipi-ibmtape/Makefile
+    src/tape_drivers/windows/winfsp/Makefile
     src/iosched/Makefile
     src/kmi/Makefile
     src/utils/Makefile

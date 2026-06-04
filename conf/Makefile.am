@@ -18,8 +18,12 @@ if PLATFORM_NETBSD
 PLAT_OPT += plugin tape scsipi-ibmtape __LIBDIR__/ltfs/libtape-scsipi-ibmtape.so
 endif
 
+if PLATFORM_WINDOWS
+PLAT_OPT += plugin tape winfsp __LIBDIR__/ltfs/libtape-winfsp.so
+endif
+
 if ENABLE_LIN_TAPE
-PLAT_OPT += \\nplugin tape lin_tape __LIBDIR__/ltfs/libtape-lin_tape.so
+PLAT_OPT += \nplugin tape lin_tape __LIBDIR__/ltfs/libtape-lin_tape.so
 endif
 
 ltfs.conf: ltfs.conf.in
